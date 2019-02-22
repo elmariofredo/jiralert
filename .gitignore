@@ -3,5 +3,5 @@
 /jiralert
 /jiralert*.tar.gz
 /vendor
-/config/jiralert.yaml
+jiralert.yaml
 

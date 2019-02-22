@@ -11,7 +11,8 @@ RELEASE_DIR := release/$(RELEASE)
 PACKAGES           := $(shell $(GO) list ./... | grep -v /vendor/)
 STATICCHECK_IGNORE :=
 
-all: clean format staticcheck build
+#all: clean format staticcheck build
+all: clean format  build
 
 clean:
 	@rm -rf jiralert release
@@ -26,7 +27,7 @@ staticcheck: get_staticcheck
 
 build:
 	@echo ">> building binaries"
-	@GOOS=linux GOARCH=amd64 $(GO) build -ldflags "-X main.Version=$(VERSION)" github.com/free/jiralert/cmd/jiralert
+	@GOOS=linux GOARCH=amd64 $(GO) build -ldflags "-X main.Version=$(VERSION)" github.com/sysincz/jiralert/cmd/jiralert
 
 tarball:
 	@echo ">> packaging release $(VERSION)"

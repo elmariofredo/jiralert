@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/andygrunwald/go-jira"
-	"github.com/free/jiralert/alertmanager"
 	log "github.com/golang/glog"
+	"github.com/sysincz/jiralert/alertmanager"
 	"github.com/trivago/tgo/tcontainer"
 )
 

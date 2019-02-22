@@ -2,4 +2,6 @@
 /release
 /jiralert
 /jiralert*.tar.gz
+/vendor
+/config/jiralert.yaml
 

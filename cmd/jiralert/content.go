@@ -5,11 +5,11 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/free/jiralert"
+	"github.com/sysincz/jiralert"
 )
 
 const (
-	docsUrl   = "https://github.com/free/jiralert#readme"
+	docsUrl   = "https://github.com/sysincz/jiralert#readme"
 	templates = `
     {{ define "page" -}}
       <html>

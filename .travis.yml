@@ -15,14 +15,14 @@ services:
   - docker
 
 install:
-  - go get github.com/golang/lint/golint
-  - golint -set_exit_status ./...
+#  - go get github.com/golang/lint/golint
+#  - golint -set_exit_status ./...
   - make dep
 
 script:
   # Code coverage and testing
-  - make coverage
-  - bash <(curl -s https://codecov.io/bash)
+  #- make coverage
+  #- bash <(curl -s https://codecov.io/bash)
   # Docker build and deployment
   # Push only if:
   # - triggered by a push to master

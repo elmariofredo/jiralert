@@ -34,7 +34,8 @@ const (
         <div class="navbar">
           <div class="navbar-header"><a href="/">JIRAlert</a></div>
           <div><a href="/config">Configuration</a></div>
-          <div><a href="/metrics">Metrics</a></div>
+		  <div><a href="/metrics">Metrics</a></div>
+		  <div><a href="/reload">Reload config</a></div>
           <div><a href="/debug/pprof">Profiling</a></div>
           <div><a href="{{ .DocsUrl }}">Help</a></div>
         </div>

@@ -21,7 +21,7 @@ PACKAGES           := $(shell $(GO) list ./... | grep -v /vendor/)
 STATICCHECK_IGNORE :=
 
 #all: clean format staticcheck build
-all: clean format  build docker 
+all: clean dep format  build docker 
 
 clean:
 	@rm -rf jiralert release
@@ -57,6 +57,9 @@ test-docker-run: docker
 
 docker-push: docker
 	docker push $(GITHUB_USERNAME)/$(BINARY):$(VERSION)
+
+dep:
+	go get -v github.com/sysincz/jiralert/cmd/jiralert
 
 get_staticcheck:
 	@echo ">> getting staticcheck"

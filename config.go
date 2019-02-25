@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/url"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -101,6 +102,12 @@ type ReceiverConfig struct {
 	// Label copy settings
 	AddGroupLabels bool `yaml:"add_group_labels" json:"add_group_labels"`
 
+	// Label settings
+	AddLabels bool `yaml:"add_labels" json:"add_labels"`
+
+	// alert_hash to identify and search alerts
+	AlertHash string `yaml:"alert_hash" json:"alert_hash"`
+
 	// Catches all undefined fields and must be empty after parsing.
 	XXX map[string]interface{} `yaml:",inline" json:"-"`
 }
@@ -164,17 +171,28 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		if _, err := url.Parse(rc.APIURL); err != nil {
 			return fmt.Errorf("invalid api_url %q in receiver %q: %s", rc.APIURL, rc.Name, err)
 		}
+
 		if rc.User == "" {
 			if c.Defaults.User == "" {
-				return fmt.Errorf("missing user in receiver %q", rc.Name)
+				if os.Getenv("JIRA_USER") == "" {
+					return fmt.Errorf("missing user in receiver %q", rc.Name)
+				} else {
+					rc.User = os.Getenv("JIRA_USER")
+					if os.Getenv("JIRA_PASS") == "" {
+						return fmt.Errorf("missing password in receiver %q", rc.Name)
+					} else {
+						rc.Password = Secret(os.Getenv("JIRA_PASS"))
+					}
+				}
+			} else {
+				rc.User = c.Defaults.User
+				rc.Password = c.Defaults.Password
 			}
-			rc.User = c.Defaults.User
+			//rc.User = c.Defaults.User
 		}
+
 		if rc.Password == "" {
-			if c.Defaults.Password == "" {
-				return fmt.Errorf("missing password in receiver %q", rc.Name)
-			}
-			rc.Password = c.Defaults.Password
+			return fmt.Errorf("missing password in receiver %q", rc.Name)
 		}
 
 		// Check required issue fields
@@ -219,6 +237,19 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		if rc.WontFixResolution == "" && c.Defaults.WontFixResolution != "" {
 			rc.WontFixResolution = c.Defaults.WontFixResolution
 		}
+
+		//	if rc.AddGroupLabels {
+		//		rc.AddGroupLabels = c.Defaults.AddGroupLabels
+		//	}
+
+		if rc.AddLabels {
+			rc.AddLabels = c.Defaults.AddLabels
+		}
+
+		if rc.AlertHash == "" && c.Defaults.AlertHash != "" {
+			rc.AlertHash = c.Defaults.AlertHash
+		}
+
 		if len(c.Defaults.Fields) > 0 {
 			for key, value := range c.Defaults.Fields {
 				if _, ok := rc.Fields[key]; !ok {

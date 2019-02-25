@@ -20,6 +20,11 @@ defaults:
   # Amount of time after being closed that an issue should be reopened, after which, a new issue is created.
   # Optional (default: always reopen)
   reopen_duration: 0h
+  # Do not create labels, sometimes its failed to create labels
+  add_labels: True
+  add_group_labels: True
+  # alert hash created using sha1 from summary and save on the bottom of alert, use in search to identify if alert already created, if empty will not search using alert_hash
+  alert_hash: '{{ template "jira.summary" . }}'
 
 # Receiver definitions. At least one must be defined.
 receivers:

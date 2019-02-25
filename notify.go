@@ -2,10 +2,12 @@ package jiralert
 
 import (
 	"bytes"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/andygrunwald/go-jira"
@@ -23,14 +25,11 @@ type Receiver struct {
 
 // NewReceiver creates a Receiver using the provided configuration and template.
 func NewReceiver(c *ReceiverConfig, t *Template) (*Receiver, error) {
-	tp := jira.BasicAuthTransport{
-		Username: c.User,
-		Password: string(c.Password),
-	}
-	client, err := jira.NewClient(tp.Client(), c.APIURL)
+	client, err := jira.NewClient(http.DefaultClient, c.APIURL)
 	if err != nil {
 		return nil, err
 	}
+	client.Authentication.SetBasicAuth(c.User, string(c.Password))
 
 	return &Receiver{conf: c, tmpl: t, client: client}, nil
 }
@@ -43,9 +42,26 @@ func (r *Receiver) Notify(data *alertmanager.Data) (bool, error) {
 		return false, r.tmpl.err
 	}
 	// Looks like an ALERT metric name, with spaces removed.
-	issueLabel := toIssueLabel(data.GroupLabels)
+	var issueLabel []string
+	var alertHash string
+	addIssueLabel := false
 
-	issue, retry, err := r.search(project, issueLabel)
+	// Add Labels
+	if r.conf.AddLabels {
+		addIssueLabel = true
+		issueLabel = toIssueLabel(data.GroupLabels)
+		issueLabel = append([]string{"ALERT"}, issueLabel...)
+		log.Infof("issueLabel 1 %s", issueLabel)
+	}
+
+	if r.conf.AlertHash != "" {
+		sha1_Bytes_alertHash := sha1.Sum([]byte(r.tmpl.Execute(r.conf.AlertHash, data)))
+		alertHash = hex.EncodeToString(sha1_Bytes_alertHash[:])
+	} else {
+		alertHash = ""
+	}
+
+	issue, retry, err := r.search(project, r.tmpl.Execute(r.conf.Summary, data), issueLabel, addIssueLabel, alertHash)
 	if err != nil {
 		return retry, err
 	}
@@ -76,12 +92,10 @@ func (r *Receiver) Notify(data *alertmanager.Data) (bool, error) {
 		Fields: &jira.IssueFields{
 			Project:     jira.Project{Key: project},
 			Type:        jira.IssueType{Name: r.tmpl.Execute(r.conf.IssueType, data)},
-			Description: r.tmpl.Execute(r.conf.Description, data),
+			Description: (fmt.Sprintf("%s\n\nalert_hash=%s", r.tmpl.Execute(r.conf.Description, data), alertHash)),
 			Summary:     r.tmpl.Execute(r.conf.Summary, data),
-			Labels: []string{
-				issueLabel,
-			},
-			Unknowns: tcontainer.NewMarshalMap(),
+			Labels:      issueLabel,
+			Unknowns:    tcontainer.NewMarshalMap(),
 		},
 	}
 	if r.conf.Priority != "" {
@@ -104,6 +118,7 @@ func (r *Receiver) Notify(data *alertmanager.Data) (bool, error) {
 	}
 
 	for key, value := range r.conf.Fields {
+		//	issue.Fields.Unknowns[key] = r.tmpl.Execute(fmt.Sprint(value), data)
 		issue.Fields.Unknowns[key] = deepCopyWithTemplate(value, r.tmpl, data)
 	}
 	// check errors from r.tmpl.Execute()
@@ -111,7 +126,7 @@ func (r *Receiver) Notify(data *alertmanager.Data) (bool, error) {
 		return false, r.tmpl.err
 	}
 	retry, err = r.create(issue)
-	if err == nil {
+	if err != nil {
 		log.Infof("Issue created: key=%s ID=%s", issue.Key, issue.ID)
 	}
 	return retry, err
@@ -159,19 +174,35 @@ func deepCopyWithTemplate(value interface{}, tmpl *Template, data interface{}) i
 }
 
 // toIssueLabel returns the group labels in the form of an ALERT metric name, with all spaces removed.
-func toIssueLabel(groupLabels alertmanager.KV) string {
-	buf := bytes.NewBufferString("ALERT{")
+func toIssueLabel(groupLabels alertmanager.KV) []string {
+	var l []string
 	for _, p := range groupLabels.SortedPairs() {
-		buf.WriteString(p.Name)
-		buf.WriteString(fmt.Sprintf("=%q,", p.Value))
+		l = append(l, p.Value)
 	}
-	buf.Truncate(buf.Len() - 1)
-	buf.WriteString("}")
-	return strings.Replace(buf.String(), " ", "", -1)
+	return l
 }
 
-func (r *Receiver) search(project, issueLabel string) (*jira.Issue, bool, error) {
-	query := fmt.Sprintf("project=\"%s\" and labels=%q order by resolutiondate desc", project, issueLabel)
+func (r *Receiver) search(project, summary string, il []string, addIssueLabel bool, alertHash string) (*jira.Issue, bool, error) {
+	var search_labels string
+	var query string
+
+	if alertHash != "" {
+		query = fmt.Sprintf("project=%s and description~\"alert_hash=%s\" order by key DESC", project, alertHash)
+	} else {
+		if addIssueLabel {
+			buf := bytes.NewBufferString("")
+			for _, l := range il {
+				buf.WriteString(fmt.Sprintf("and labels=%q ", l))
+			}
+			buf.Truncate(buf.Len() - 1)
+			search_labels = buf.String()
+
+			query = fmt.Sprintf("project=%s %s order by key DESC", project, search_labels)
+		} else {
+			query = fmt.Sprintf("project=%s order by key DESC", project)
+		}
+	}
+
 	options := &jira.SearchOptions{
 		Fields:     []string{"summary", "status", "resolution", "resolutiondate"},
 		MaxResults: 2,

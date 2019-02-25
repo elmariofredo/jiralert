@@ -53,7 +53,7 @@ docker: clean  build
 	docker build -t $(GITHUB_USERNAME)/$(BINARY):$(VERSION) .
 
 test-docker-run: docker
-	docker run --rm $(DOCKER_RUN_OPTS) -p 9097:9097 $(GITHUB_USERNAME)/$(BINARY):$(VERSION) $(DOCKER_RUN_ARG)
+	docker run --env JIRA_PASS=$(JIRA_PASSWORD) --env JIRA_USER=$(JIRA_USERNAME) --rm $(DOCKER_RUN_OPTS) -p 9097:9097 $(GITHUB_USERNAME)/$(BINARY):$(VERSION) $(DOCKER_RUN_ARG)
 
 docker-push: docker
 	docker push $(GITHUB_USERNAME)/$(BINARY):$(VERSION)

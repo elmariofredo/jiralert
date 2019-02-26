@@ -10,4 +10,4 @@
 #         exit 1
 # fi
 
-exec $@
+exec /jiralert $@

@@ -1,0 +1,177 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: jira-secret
+type: Opaque
+data:
+  JIRA_USERNAME: YWRtaW4=
+  JIRA_PASSWORD: MWYyZDFlMmU2N2Rm
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: prometheus-jiralert-config
+ namespace: default
+data:
+  jiralert.yml: |
+    # Global defaults, applied to all receivers where not explicitly overridden. Optional.
+    defaults:
+      # API access fields.
+      api_url: https://jiralert.atlassian.net
+#      user: jiralert   # user and password from secrets
+#      password: 'JIRAlert'
+
+      # The type of JIRA issue to create. Required.
+      issue_type: Bug
+      # Issue priority. Optional.
+      priority: Critical
+      # Go template invocation for generating the summary. Required.
+      summary: '{{ template "jira.summary" . }}'
+      # Go template invocation for generating the description. Optional.
+      description: '{{ template "jira.description" . }}'
+      # State to transition into when reopening a closed issue. Required.
+      reopen_state: "To Do"
+      # Do not reopen issues with this resolution. Optional.
+      wont_fix_resolution: "Won't Fix"
+      # Amount of time after being closed that an issue should be reopened, after which, a new issue is created.
+      # Optional (default: always reopen)
+      reopen_duration: 0h
+      # Do not create labels, sometimes its failed to create labels
+      add_labels: True
+      add_group_labels: True
+      # alert hash created using sha1 from summary and save on the bottom of alert, use in search to identify if alert already created, if empty will not search using alert_hash
+      alert_hash: '{{ template "jira.summary" . }}'
+
+    # Receiver definitions. At least one must be defined.
+    receivers:
+        # Must match the Alertmanager receiver name. Required.
+      - name: 'jira-ab'
+        # JIRA project to create the issue in. Required.
+        project: AB
+        # Copy all Prometheus labels into separate JIRA labels. Optional (default: false).
+        add_group_labels: false
+
+      - name: 'jira-xy'
+        project: XY
+        # Overrides default.
+        issue_type: Task
+        # JIRA components. Optional.
+        components: [ 'Operations' ]
+        # Standard or custom field values to set on created issue. Optional.
+        #
+        # See https://developer.atlassian.com/server/jira/platform/jira-rest-api-examples/#setting-custom-field-data-for-other-field-types for further examples.
+        fields:
+          # TextField
+          customfield_10001: "Random text"
+          # SelectList
+          customfield_10002: { "value": "red" }
+          # MultiSelect
+          customfield_10003: [{"value": "red" }, {"value": "blue" }, {"value": "green" }]
+
+    # File containing template definitions. Required.
+    template: jiralert.tmpl
+  jiralert.tmpl: |
+    {{ define "jira.summary" -}}
+    ALERT - [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .GroupLabels.SortedPairs.Values | join " " }} {{ if gt (len .CommonLabels) (len .GroupLabels) }}({{ with .CommonLabels.Remove .GroupLabels.Names }}{{ .Values | join " " }}{{ end }}){{ end }}
+    {{ end -}}
+
+    {{ define "jira.description" -}}
+      {{ range .Alerts.Firing -}}
+        {{ if .Annotations -}}
+
+    *Annotations:*
+          {{ range .Annotations.SortedPairs -}}
+            {{ if .Name -}} - {{ .Name }} = {{ .Value }}{{ end }}
+          {{ end }}
+        {{ end }}
+
+    *Labels:*
+        {{ range .Labels.SortedPairs -}}
+          {{ if .Value -}} - {{ .Name }} = {{ .Value }}{{ end }}
+        {{ end }}
+
+    {{ if .GeneratorURL }}*Source:* {{ .GeneratorURL }}{{ end }}
+
+    ---------------------------------------------------------
+      {{ end -}}
+    {{ end -}}
+
+---
+# Source: prometheus-jiralert/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-jiralert
+  namespace: default
+  labels:
+    app: prometheus-jiralert
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9097
+      targetPort: http
+      protocol: TCP
+  selector:
+    app: prometheus-jiralert
+    release: prometheus-jiralert
+
+---
+# Source: prometheus-jiralert/templates/deployment.yaml
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: prometheus-jiralert
+  namespace: default
+  labels:
+    app: prometheus-jiralert
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus-jiralert
+      release: prometheus-jiralert
+  template:
+    metadata:
+      labels:
+        app: prometheus-jiralert
+        release: prometheus-jiralert
+    spec:
+      volumes:
+        - name: config-volume
+          configMap:
+            name: prometheus-jiralert-config
+      containers:
+        - name: prometheus-jiralert
+          image: "sysincz/jiralert:v2.0"
+          args:
+          - -check-config -config /config/jiralert.yml
+#          imagePullPolicy: Always
+          env:
+          - name: JIRA_USER
+            valueFrom:
+              secretKeyRef:
+                name: jira-secret
+                key: JIRA_USERNAME
+          - name: JIRA_PASS
+            valueFrom:
+              secretKeyRef:
+                name: jira-secret
+                key: JIRA_PASSWORD
+          volumeMounts:
+            - name: config-volume
+              mountPath: /config
+          ports:
+          - name: http
+            containerPort: 9097
+            protocol: TCP
+          resources:
+            limits:
+              cpu: 10m
+              memory: 32Mi
+            requests:
+              cpu: 1m
+              memory: 8Mi
+            
+

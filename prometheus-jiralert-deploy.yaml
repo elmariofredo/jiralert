@@ -144,7 +144,7 @@ spec:
             name: prometheus-jiralert-config
       containers:
         - name: prometheus-jiralert
-          image: "sysincz/jiralert:v2.0"
+          image: "sysincz/jiralert:latest"
           args:
           - -check-config -config /config/jiralert.yml
 #          imagePullPolicy: Always

@@ -15,8 +15,8 @@ services:
   - docker
 
 install:
-#  - go get github.com/golang/lint/golint
-#  - golint -set_exit_status ./...
+  - go get github.com/golang/lint/golint
+  - golint -set_exit_status ./...
   - make dep
 
 script:

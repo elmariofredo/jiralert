@@ -55,8 +55,8 @@ func (r *Receiver) Notify(data *alertmanager.Data) (bool, error) {
 	}
 
 	if r.conf.AlertHash != "" {
-		sha1_Bytes_alertHash := sha1.Sum([]byte(r.tmpl.Execute(r.conf.AlertHash, data)))
-		alertHash = hex.EncodeToString(sha1_Bytes_alertHash[:])
+		sha1BytesAlertHash := sha1.Sum([]byte(r.tmpl.Execute(r.conf.AlertHash, data)))
+		alertHash = hex.EncodeToString(sha1BytesAlertHash[:])
 	} else {
 		alertHash = ""
 	}
@@ -183,7 +183,7 @@ func toIssueLabel(groupLabels alertmanager.KV) []string {
 }
 
 func (r *Receiver) search(project, summary string, il []string, addIssueLabel bool, alertHash string) (*jira.Issue, bool, error) {
-	var search_labels string
+	var searchLabels string
 	var query string
 
 	if alertHash != "" {
@@ -195,9 +195,9 @@ func (r *Receiver) search(project, summary string, il []string, addIssueLabel bo
 				buf.WriteString(fmt.Sprintf("and labels=%q ", l))
 			}
 			buf.Truncate(buf.Len() - 1)
-			search_labels = buf.String()
+			searchLabels = buf.String()
 
-			query = fmt.Sprintf("project=%s %s order by key DESC", project, search_labels)
+			query = fmt.Sprintf("project=%s %s order by key DESC", project, searchLabels)
 		} else {
 			query = fmt.Sprintf("project=%s order by key DESC", project)
 		}

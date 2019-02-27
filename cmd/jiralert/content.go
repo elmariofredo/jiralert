@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	docsUrl   = "https://github.com/sysincz/jiralert#readme"
+	docsURL   = "https://github.com/sysincz/jiralert#readme"
 	templates = `
     {{ define "page" -}}
       <html>
@@ -37,7 +37,7 @@ const (
 		  <div><a href="/metrics">Metrics</a></div>
 		  <div><a href="/reload">Reload config</a></div>
           <div><a href="/debug/pprof">Profiling</a></div>
-          <div><a href="{{ .DocsUrl }}">Help</a></div>
+          <div><a href="{{ .DocsURL }}">Help</a></div>
         </div>
         {{template "content" .}}
       </body>
@@ -45,7 +45,7 @@ const (
     {{- end }}
 
     {{ define "content.home" -}}
-      <p>This is <a href="{{ .DocsUrl }}">JIRAlert</a>, a
+      <p>This is <a href="{{ .DocsURL }}">JIRAlert</a>, a
         <a href="https://prometheus.io/docs/alerting/configuration/#webhook_config">webhook receiver</a> for
         <a href="https://prometheus.io/docs/alerting/alertmanager/">Prometheus Alertmanager</a>.
     {{- end }}
@@ -63,7 +63,7 @@ const (
 )
 
 type tdata struct {
-	DocsUrl string
+	DocsURL string
 
 	// `/config` only
 	Config string
@@ -88,7 +88,7 @@ func pageTemplate(name string) *template.Template {
 func HomeHandlerFunc() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		homeTemplate.Execute(w, &tdata{
-			DocsUrl: docsUrl,
+			DocsURL: docsURL,
 		})
 	}
 }
@@ -97,7 +97,7 @@ func HomeHandlerFunc() func(http.ResponseWriter, *http.Request) {
 func ConfigHandlerFunc(config *jiralert.Config) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		configTemplate.Execute(w, &tdata{
-			DocsUrl: docsUrl,
+			DocsURL: docsURL,
 			Config:  config.String(),
 		})
 	}
@@ -108,7 +108,7 @@ func ConfigHandlerFunc(config *jiralert.Config) func(http.ResponseWriter, *http.
 //func HandleError(err error, metricsPath string, w http.ResponseWriter, r *http.Request) {
 //	w.WriteHeader(http.StatusInternalServerError)
 //	errorTemplate.Execute(w, &tdata{
-//		DocsUrl: docsUrl,
+//		DocsURL: docsURL,
 //		Err:     err,
 //	})
 //}

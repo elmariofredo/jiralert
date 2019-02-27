@@ -176,14 +176,14 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			if c.Defaults.User == "" {
 				if os.Getenv("JIRA_USER") == "" {
 					return fmt.Errorf("missing user in receiver %q", rc.Name)
-				} else {
-					rc.User = os.Getenv("JIRA_USER")
-					if os.Getenv("JIRA_PASS") == "" {
-						return fmt.Errorf("missing password in receiver %q", rc.Name)
-					} else {
-						rc.Password = Secret(os.Getenv("JIRA_PASS"))
-					}
 				}
+				rc.User = os.Getenv("JIRA_USER")
+
+				if os.Getenv("JIRA_PASS") == "" {
+					return fmt.Errorf("missing password in receiver %q", rc.Name)
+				}
+				rc.Password = Secret(os.Getenv("JIRA_PASS"))
+
 			} else {
 				rc.User = c.Defaults.User
 				rc.Password = c.Defaults.Password
@@ -291,6 +291,7 @@ func checkOverflow(m map[string]interface{}, ctx string) error {
 	return nil
 }
 
+//Duration Time in ms
 type Duration time.Duration
 
 var durationRE = regexp.MustCompile("^([0-9]+)(y|w|d|h|m|s|ms)$")
@@ -362,10 +363,12 @@ func (d Duration) String() string {
 	return fmt.Sprintf("%v%v", ms/factors[unit], unit)
 }
 
+//MarshalYAML for duration
 func (d Duration) MarshalYAML() (interface{}, error) {
 	return d.String(), nil
 }
 
+//UnmarshalYAML  for duration
 func (d *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var s string
 	if err := unmarshal(&s); err != nil {

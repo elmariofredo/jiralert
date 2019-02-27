@@ -20,8 +20,8 @@ data:
     defaults:
       # API access fields.
       api_url: https://jiralert.atlassian.net
-#      user: jiralert   # user and password from secrets
-#      password: 'JIRAlert'
+    # user: jiralert   # user and password from secrets
+    # password: 'JIRAlert'
 
       # The type of JIRA issue to create. Required.
       issue_type: Bug

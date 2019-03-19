@@ -147,7 +147,8 @@ spec:
         - name: prometheus-jiralert
           image: "sysincz/jiralert:latest"
           args:
-          - -check-config -config /config/jiralert.yml
+          - -config 
+          - /config/jiralert.yml
 #          imagePullPolicy: Always
           env:
           - name: JIRA_USER

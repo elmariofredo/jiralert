@@ -36,7 +36,7 @@ staticcheck: get_staticcheck
 
 build:
 	@echo ">> building binaries"
-	@GOOS=linux GOARCH=amd64 $(GO) build $(LDFLAGS) github.com/sysincz/jiralert/cmd/jiralert
+	@GOOS=linux GOARCH=amd64 CGO_ENABLED=0 $(GO) build $(LDFLAGS) -a -installsuffix cgo -o ./jiralert github.com/sysincz/jiralert/cmd/jiralert 
 
 tarball:
 	@echo ">> packaging release $(VERSION)"

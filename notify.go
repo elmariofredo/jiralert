@@ -3,6 +3,7 @@ package jiralert
 import (
 	"bytes"
 	"crypto/sha1"
+	"crypto/tls"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -25,7 +26,14 @@ type Receiver struct {
 
 // NewReceiver creates a Receiver using the provided configuration and template.
 func NewReceiver(c *ReceiverConfig, t *Template) (*Receiver, error) {
-	client, err := jira.NewClient(http.DefaultClient, c.APIURL)
+	// Create New http Transport
+	transCfg := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // disable verify
+	}
+	// Create Http Client
+	cclient := &http.Client{Transport: transCfg}
+
+	client, err := jira.NewClient(cclient, c.APIURL)
 	if err != nil {
 		return nil, err
 	}

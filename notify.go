@@ -136,6 +136,8 @@ func (r *Receiver) Notify(data *alertmanager.Data) (bool, error) {
 	retry, err = r.create(issue)
 	if err != nil {
 		log.Infof("Issue created: key=%s ID=%s", issue.Key, issue.ID)
+	} else {
+		log.Warningf("Create issue error=%s", err.Error())
 	}
 	return retry, err
 }
